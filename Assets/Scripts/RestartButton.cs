@@ -11,10 +11,6 @@ public class RestartButton : MonoBehaviour
 
     public TextMeshProUGUI score_;
 
-    private void Start()
-    {
-        score_.text = "Score: " + ScoreManager.score;
-    }
 
     public void RestartLevel()
     {

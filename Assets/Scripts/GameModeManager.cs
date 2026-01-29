@@ -8,7 +8,7 @@ public enum GameMode
     Tasks
 }
 
-public class GameModeManager : MonoBehaviour
+public class GameModeManager
 {
     public static GameMode CurrentMode = GameMode.Normal;
 }

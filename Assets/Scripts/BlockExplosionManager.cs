@@ -18,10 +18,7 @@ public class BlockExplosionManager : MonoBehaviour
     public void CreateExplosion(Vector3 position, Color color)
     {
         if (explosionPrefab == null)
-        {
-            Debug.LogWarning("⚠️ Explosion prefab не назначен в инспекторе!");
             return;
-        }
 
         GameObject explosion = Instantiate(explosionPrefab, position, Quaternion.identity);
 

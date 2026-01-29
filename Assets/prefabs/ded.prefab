@@ -102,6 +102,7 @@ MonoBehaviour:
   spawnInterval: 1
   liveInterval: 3
   growSpeed: 2
+  explosionSound: {fileID: 8300000, guid: ffc3446498300ed46a58b025d5ea4956, type: 3}
 --- !u!50 &1290972224584519238
 Rigidbody2D:
   serializedVersion: 4

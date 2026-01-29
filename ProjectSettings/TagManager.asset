@@ -9,6 +9,8 @@ TagManager:
   - Green
   - Yellow
   - SettingsPanel
+  - Bonus
+  - Freeze
   layers:
   - Default
   - TransparentFX

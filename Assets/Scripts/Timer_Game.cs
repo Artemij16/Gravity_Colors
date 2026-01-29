@@ -1,13 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 public class Timer_Game : MonoBehaviour
 {
     public static Timer_Game instance;
 
-    public Text timerText;
+    public TextMeshProUGUI timerText;
     public float timeRemaining = 300f;
     private bool timerRunning = true;
     public GameObject panel_res;
@@ -42,17 +42,19 @@ public class Timer_Game : MonoBehaviour
     {
         int minutes = Mathf.FloorToInt(timeRemaining / 60);
         int seconds = Mathf.FloorToInt(timeRemaining % 60);
+
         if (timerText != null)
             timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
     }
 
     void TimerFinished()
     {
-        if (panel_res != null)
-            panel_res.SetActive(true);
+        if (ScoreManager.Instance != null)
+            ScoreManager.Instance.GameOver();
 
         Time.timeScale = 0f;
     }
+
     public void MinusTime()
     {
         timeRemaining -= 10f;

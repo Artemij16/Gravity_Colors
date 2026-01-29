@@ -12,6 +12,8 @@ public class LeaveDed : MonoBehaviour
     private float timerlive = 0f;
     private Vector3 targetScale = Vector3.one;
 
+    [Header("Audio")]
+    public AudioClip explosionSound;
     void Start()
     {
         transform.localScale = Vector3.zero;
@@ -32,18 +34,27 @@ public class LeaveDed : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (SoundManager.Instance != null && explosionSound != null)
+        {
+            SoundManager.Instance.PlaySFX(explosionSound);
+        }
         Color explosionColor = GetColorByTag(other.tag);
-    BlockExplosionManager.Instance.CreateExplosion(other.transform.position, explosionColor);
-    
-    switch (GameModeManager.CurrentMode)
+        BlockExplosionManager.Instance.CreateExplosion(other.transform.position, explosionColor);
+
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.TriggerVibration();
+        }
+
+        switch (GameModeManager.CurrentMode)
         {
             case GameMode.Health:
                 if (HealthManager.Instance != null)
                 {
                     if (HealthManager.Instance.Health > 1)
                         StartCoroutine(Camera.main.GetComponent<CameraShake>().Shake(0.2f, 0.3f));
-                HealthManager.Instance.MinusHealth();
-            }
+                    HealthManager.Instance.MinusHealth();
+                }
                 break;
 
             case GameMode.Timer:
@@ -51,8 +62,8 @@ public class LeaveDed : MonoBehaviour
                 {
                     if (Timer_Game.instance.timeRemaining > 0)
                         StartCoroutine(Camera.main.GetComponent<CameraShake>().Shake(0.2f, 0.3f));
-                Timer_Game.instance.MinusTime();
-            }
+                    Timer_Game.instance.MinusTime();
+                }
                 break;
 
             case GameMode.Tasks:
@@ -64,7 +75,7 @@ public class LeaveDed : MonoBehaviour
                 break;
         }
         Destroy(other.gameObject);
-}
+    }
     Color GetColorByTag(string tag)
     {
         switch (tag)

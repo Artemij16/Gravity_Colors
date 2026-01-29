@@ -8,6 +8,8 @@ public class HealthManager : MonoBehaviour
     public static HealthManager Instance;
     public Text healthText;
 
+
+    private bool isDead = false;
     public int Health = 5;
 
     private void Awake()
@@ -19,8 +21,6 @@ public class HealthManager : MonoBehaviour
     {
         if (healthText != null)
             healthText.text = "" + Health;
-
-        Time.timeScale = 1.0f;
     }
 
     public void MinusHealth()
@@ -32,8 +32,9 @@ public class HealthManager : MonoBehaviour
 
     private void Update()
     {
-        if (Health <= 0)
+        if (Health <= 0 && !isDead)
         {
+            isDead = true;
             ScoreManager.Instance.GameOver();
         }
     }

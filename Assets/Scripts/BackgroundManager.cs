@@ -31,10 +31,9 @@ public class BackgroundManager : MonoBehaviour
     {
         int index = PlayerPrefs.GetInt("SelectedBG", 0);
 
-        // Если ссылка на рендерер пустая (после смены сцены), ищем его по тегу или имени
         if (bgRenderer == null)
         {
-            GameObject bgObj = GameObject.FindWithTag("MainBackground"); // Дай фону в сценах тег "MainBackground"
+            GameObject bgObj = GameObject.FindWithTag("MainBackground"); 
             if (bgObj != null) bgRenderer = bgObj.GetComponent<SpriteRenderer>();
         }
 

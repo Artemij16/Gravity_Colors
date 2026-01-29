@@ -1,224 +1,201 @@
 ﻿using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class ShopSliderManager : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
+public class ShopSliderManager : MonoBehaviour
 {
-    [Header("Data & Prices")]
-    public Sprite[] backgrounds;
+    [Header("Data & Items")]
     public int[] prices;
-
-    [Header("Items (UI Objects)")]
-    public BackgroundItem leftItem;
-    public BackgroundItem centerItem;
-    public BackgroundItem rightItem;
-
-    [Header("Settings")]
-    public float snapSpeed = 12f;
-    public float dragThreshold = 0.2f;
-    [Range(0.1f, 1f)] public float minScale = 0.7f;
-    [Range(1f, 2f)] public float maxScale = 1.0f;
+    public RectTransform[] items;
+    private BackgroundItem[] itemScripts;
 
     [Header("UI References")]
     public TMP_Text priceText;
-    public TMP_Text balanceText; // Текст для отображения ScoreManager.score
-    public Button actionButton;  // Сама кнопка (чтобы менять её состояние)
-    public TMP_Text actionButtonText; // Текст на кнопке (Buy/Select/Active)
+    public TMP_Text balanceText;
+    public Button actionButton;
+    public TMP_Text actionButtonText;
 
-    private int currentIndex = 0;
+    [Header("Movement Settings")]
+    public float spacing = 700f;
+    public float moveSpeed = 10f;
+    public float activeScale = 1.2f;
+    public float idleScale = 0.8f;
+
+    [Header("Swipe Settings")]
+    public float swipeThreshold = 50f;
     private Vector2 touchStartPos;
+    private Vector2 touchEndPos;
     private bool isDragging = false;
-    private Vector3 leftStartPos, centerStartPos, rightStartPos;
-    private float itemStep;
+
+    [Header("Navigation")]
+    public string menuSceneName = "main";
+    private int currentIndex = 0;
 
     void Start()
     {
-        // Рассчитываем шаг между элементами
-        leftStartPos = leftItem.transform.localPosition;
-        centerStartPos = centerItem.transform.localPosition;
-        rightStartPos = rightItem.transform.localPosition;
-        itemStep = Vector3.Distance(centerStartPos, rightStartPos);
+        itemScripts = new BackgroundItem[items.Length];
+        for (int i = 0; i < items.Length; i++)
+        {
+            itemScripts[i] = items[i].GetComponent<BackgroundItem>();
+            items[i].anchorMin = new Vector2(0.5f, 0.5f);
+            items[i].anchorMax = new Vector2(0.5f, 0.5f);
+            items[i].pivot = new Vector2(0.5f, 0.5f);
+        }
 
-        // Загружаем текущий выбранный фон из твоего BackgroundManager
         currentIndex = PlayerPrefs.GetInt("SelectedBG", 0);
+        if (currentIndex >= items.Length) currentIndex = 0;
 
-        UpdateView();
-        ApplyTransform(0);
+        UpdateUI();
+        UpdateItemsPosition(true);
     }
-
+    public void ExitToMenu()
+    {
+        SceneManager.LoadScene(menuSceneName);
+    }
     void Update()
     {
-        // Обновляем визуальный баланс очков каждый кадр
-        if (balanceText != null)
-            balanceText.text = "SCORE: " + ScoreManager.score;
+        int currentBalance = DataCrypto.GetSecureInt("TotalBank", 0);
+        if (balanceText != null) balanceText.text = "BANK: " + currentBalance;
+
+        HandleSwipe();
+        UpdateItemsPosition(false);
     }
 
-    // --- ЛОГИКА СВАЙПА ---
-
-    public void OnBeginDrag(PointerEventData eventData)
+    void HandleSwipe()
     {
-        StopAllCoroutines();
-        touchStartPos = eventData.position;
-    }
-
-    public void OnDrag(PointerEventData eventData)
-    {
-        isDragging = true;
-        float offset = eventData.position.x - touchStartPos.x;
-
-        // Эффект "резинки" на границах списка
-        if ((currentIndex == 0 && offset > 0) || (currentIndex == backgrounds.Length - 1 && offset < 0))
-            offset *= 0.3f;
-
-        ApplyTransform(offset);
-    }
-
-    public void OnEndDrag(PointerEventData eventData)
-    {
-        isDragging = false;
-        float offset = eventData.position.x - touchStartPos.x;
-        int targetIndex = currentIndex;
-
-        if (offset < -itemStep * dragThreshold && currentIndex < backgrounds.Length - 1)
-            targetIndex++;
-        else if (offset > itemStep * dragThreshold && currentIndex > 0)
-            targetIndex--;
-
-        StartCoroutine(SmoothSnap(targetIndex, offset));
-    }
-
-    IEnumerator SmoothSnap(int targetIndex, float currentOffset)
-    {
-        float targetOffset = 0;
-        if (targetIndex > currentIndex) targetOffset = -itemStep;
-        else if (targetIndex < currentIndex) targetOffset = itemStep;
-
-        float animOffset = currentOffset;
-
-        while (Mathf.Abs(animOffset - targetOffset) > 0.1f)
+        if (Input.GetMouseButtonDown(0))
         {
-            animOffset = Mathf.Lerp(animOffset, targetOffset, Time.deltaTime * snapSpeed);
-            ApplyTransform(animOffset);
-            yield return null;
+            touchStartPos = Input.mousePosition;
+            isDragging = true;
         }
 
-        currentIndex = targetIndex;
-        UpdateView();
-        ApplyTransform(0);
+        if (Input.GetMouseButtonUp(0) && isDragging)
+        {
+            touchEndPos = Input.mousePosition;
+            CheckSwipe();
+            isDragging = false;
+        }
     }
 
-    private void ApplyTransform(float offset)
+    void CheckSwipe()
     {
-        centerItem.transform.localPosition = centerStartPos + new Vector3(offset, 0, 0);
-        leftItem.transform.localPosition = leftStartPos + new Vector3(offset, 0, 0);
-        rightItem.transform.localPosition = rightStartPos + new Vector3(offset, 0, 0);
+        float swipeDistance = touchEndPos.x - touchStartPos.x;
 
-        centerItem.transform.localScale = Vector3.one * CalculateScale(centerItem.transform.localPosition.x);
-        leftItem.transform.localScale = Vector3.one * CalculateScale(leftItem.transform.localPosition.x);
-        rightItem.transform.localScale = Vector3.one * CalculateScale(rightItem.transform.localPosition.x);
+        if (Mathf.Abs(swipeDistance) > swipeThreshold)
+        {
+            if (swipeDistance > 0)
+            {
+
+                PrevItem();
+            }
+            else
+            {
+                NextItem();
+            }
+        }
     }
 
-    float CalculateScale(float xPos)
+    void UpdateItemsPosition(bool instant)
     {
-        float distance = Mathf.Abs(xPos) / itemStep;
-        return Mathf.Lerp(maxScale, minScale, Mathf.Clamp01(distance));
+        for (int i = 0; i < items.Length; i++)
+        {
+            float targetX = (i - currentIndex) * spacing;
+            Vector3 targetPos = new Vector3(targetX, 0, 0);
+            float scaleValue = (i == currentIndex) ? activeScale : idleScale;
+            Vector3 targetScale = new Vector3(scaleValue, scaleValue, 1f);
+
+            if (instant)
+            {
+                items[i].anchoredPosition = targetPos;
+                items[i].localScale = targetScale;
+            }
+            else
+            {
+                items[i].anchoredPosition = Vector3.Lerp(items[i].anchoredPosition, targetPos, Time.deltaTime * moveSpeed);
+                items[i].localScale = Vector3.Lerp(items[i].localScale, targetScale, Time.deltaTime * moveSpeed);
+            }
+        }
     }
 
-    // --- ЛОГИКА МАГАЗИНА И ОБНОВЛЕНИЯ UI ---
-
-    void UpdateView()
+    public void NextItem()
     {
-        // 1. Обновляем картинки айтемов
-        SetItem(centerItem, currentIndex);
+        if (currentIndex < items.Length - 1)
+        {
+            currentIndex++;
+            UpdateUI();
+        }
+    }
+
+    public void PrevItem()
+    {
         if (currentIndex > 0)
         {
-            leftItem.gameObject.SetActive(true);
-            SetItem(leftItem, currentIndex - 1);
+            currentIndex--;
+            UpdateUI();
         }
-        else leftItem.gameObject.SetActive(false);
+    }
 
-        if (currentIndex < backgrounds.Length - 1)
-        {
-            rightItem.gameObject.SetActive(true);
-            SetItem(rightItem, currentIndex + 1);
-        }
-        else rightItem.gameObject.SetActive(false);
+    public void UpdateUI()
+    {
+        if (items.Length == 0) return;
 
-        // 2. Логика кнопки Купить/Выбрать
         bool isBought = IsBought(currentIndex);
-        int selectedBG = PlayerPrefs.GetInt("SelectedBG", 0);
+        int selected = PlayerPrefs.GetInt("SelectedBG", 0);
+        int currentBalance = DataCrypto.GetSecureInt("TotalBank", 0);
+
+        for (int i = 0; i < itemScripts.Length; i++)
+        {
+            if (itemScripts[i] != null && itemScripts[i].lockIcon != null)
+                itemScripts[i].lockIcon.SetActive(!IsBought(i));
+        }
 
         if (!isBought)
         {
             priceText.text = "PRICE: " + prices[currentIndex];
             actionButtonText.text = "BUY";
-            actionButton.interactable = (ScoreManager.score >= prices[currentIndex]);
+            actionButton.interactable = (currentBalance >= prices[currentIndex]);
         }
         else
         {
-            if (currentIndex == selectedBG)
-            {
-                priceText.text = "CURRENTLY USED";
-                actionButtonText.text = "ACTIVE";
-                actionButton.interactable = false;
-            }
-            else
-            {
-                priceText.text = "OWNED";
-                actionButtonText.text = "SELECT";
-                actionButton.interactable = true;
-            }
+            priceText.text = "OWNED";
+            actionButtonText.text = (currentIndex == selected) ? "ACTIVE" : "SELECT";
+            actionButton.interactable = (currentIndex != selected);
         }
     }
 
-    // Этот метод вешаем на OnClick кнопки BuyButton
-    public void OnActionButtonClick()
+    public void OnActionClick()
     {
+        int currentBalance = DataCrypto.GetSecureInt("TotalBank", 0);
+
         if (!IsBought(currentIndex))
         {
-            // Покупка
-            if (ScoreManager.score >= prices[currentIndex])
+            if (currentBalance >= prices[currentIndex])
             {
-                ScoreManager.score -= prices[currentIndex];
-                // Сохраняем факт покупки
+                currentBalance -= prices[currentIndex];
+                DataCrypto.SaveSecureInt("TotalBank", currentBalance);
+
                 PlayerPrefs.SetInt("BG_Bought_" + currentIndex, 1);
                 PlayerPrefs.Save();
-
-                // Автоматически выбираем после покупки
-                SelectThisBackground();
+                UpdateUI();
             }
         }
         else
         {
-            // Установка
-            SelectThisBackground();
+            PlayerPrefs.SetInt("SelectedBG", currentIndex);
+            PlayerPrefs.Save();
+            if (BackgroundManager.Instance != null)
+            {
+                BackgroundManager.Instance.ApplyBackground();
+            }
+            UpdateUI();
         }
-    }
-    public void GoBack()
-    {
-        SceneManager.LoadScene("main");
-    }
-    private void SelectThisBackground()
-    {
-        if (BackgroundManager.Instance != null)
-        {
-            BackgroundManager.Instance.SetBackground(currentIndex);
-        }
-        UpdateView();
-    }
-
-    void SetItem(BackgroundItem item, int index)
-    {
-        if (item != null)
-            item.Set(backgrounds[index], !IsBought(index));
     }
 
     bool IsBought(int index)
     {
-        if (index == 0) return true; // Первый всегда куплен
+        if (index == 0) return true;
         return PlayerPrefs.GetInt("BG_Bought_" + index, 0) == 1;
     }
 }

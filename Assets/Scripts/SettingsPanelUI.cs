@@ -47,7 +47,6 @@ public class SettingsPanelUI : MonoBehaviour
                 SettingsManager.Instance.SetVibration(vibrationToggle.isOn);
 
             PlayerPrefs.Save();
-            Debug.Log("Настройки успешно сохранены на диск.");
         }
 
         gameObject.SetActive(false);

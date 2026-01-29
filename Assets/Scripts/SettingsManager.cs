@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Audio;
-
+using System.Collections;
 public class SettingsManager : MonoBehaviour
 {
     public static SettingsManager Instance;
@@ -17,28 +17,43 @@ public class SettingsManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            LoadSettings();
+            StartCoroutine(ApplyVolumesNextFrame());
         }
         else
         {
             Destroy(gameObject);
-            return;
         }
+    }
+    public void TriggerVibration()
+    {
+        if (vibrationEnabled)
+        {
+            Handheld.Vibrate();
+        }
+    }
+    private IEnumerator ApplyVolumesNextFrame()
+    {
 
-        LoadSettings();
-        ApplySettings();
+        yield return new WaitForEndOfFrame();
+        ApplyVolumes();
     }
 
     public void SetSoundVolume(float value)
     {
         soundVolume = value;
-        audioMixer.SetFloat("SFXVolume", Mathf.Log10(value) * 20);
+        audioMixer.SetFloat("SFXVolume", LinearToDb(value));
         PlayerPrefs.SetFloat("SoundVolume", value);
     }
-
+    private void ApplyVolumes()
+    {
+        SetMusicVolume(musicVolume);
+        SetSoundVolume(soundVolume);
+    }
     public void SetMusicVolume(float value)
     {
         musicVolume = value;
-        audioMixer.SetFloat("MusicVolume", Mathf.Log10(value) * 20);
+        audioMixer.SetFloat("MusicVolume", LinearToDb(value));
         PlayerPrefs.SetFloat("MusicVolume", value);
     }
 
@@ -55,9 +70,11 @@ public class SettingsManager : MonoBehaviour
         vibrationEnabled = PlayerPrefs.GetInt("Vibration", 1) == 1;
     }
 
-    private void ApplySettings()
+    private float LinearToDb(float value)
     {
-        audioMixer.SetFloat("SFXVolume", Mathf.Log10(soundVolume) * 20);
-        audioMixer.SetFloat("MusicVolume", Mathf.Log10(musicVolume) * 20);
+        if (value <= 0.0001f)
+            return -80f;
+
+        return Mathf.Log10(value) * 20f;
     }
 }

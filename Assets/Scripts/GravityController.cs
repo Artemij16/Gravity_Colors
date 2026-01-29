@@ -1,12 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.SceneManagement;
 public class GravityController : MonoBehaviour
 {
     public GameObject panel;
     public float gravityStrength = 9.8f;
     public GameObject start;
+
+    [Header("Audio")]
+    public AudioClip gravitySound;
 
     [Header("Wind Effects")]
     public ParticleSystem windUp;
@@ -47,6 +50,10 @@ public class GravityController : MonoBehaviour
             }
             else if (pos.y > h * 0.66f)
             {
+                if (SceneManager.GetActiveScene().name == "mein_play")
+                {
+                    return;
+                }
                 SetGravity(Vector2.up, windUp);
             }
             else if (pos.y < h * 0.33f)
@@ -67,6 +74,9 @@ public class GravityController : MonoBehaviour
         if (windEffect == null) return;
 
         windEffect.Play();
+
+        // Воспроизведение звука
+        SoundManager.Instance.PlaySFX(gravitySound);
 
         if (windRoutine != null)
             StopCoroutine(windRoutine);

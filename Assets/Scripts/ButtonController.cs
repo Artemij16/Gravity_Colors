@@ -10,10 +10,11 @@ public class ButtonController : MonoBehaviour
     public string shopScene = "Shop";
     public GameObject panel;
     public GameObject panel_about;
-
+    
     private void Start()
     {
         Time.timeScale = 1f;
+        Physics2D.gravity = Vector2.down;
     }
     public void OnPlayButton()
     {
@@ -23,6 +24,7 @@ public class ButtonController : MonoBehaviour
     public void OnShopButton()
     {
         SceneManager.LoadScene(shopScene);
+        Debug.Log("Error on load scene!");
     }
 
     public void OnSettingsButton()
@@ -37,7 +39,6 @@ public class ButtonController : MonoBehaviour
 
     public void OnExitButton()
     {
-        Debug.Log("Exit pressed");
         Application.Quit();
     }
     public void OnButtonExitFromAbout()
